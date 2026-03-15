@@ -35,7 +35,7 @@ asyncio.run(main())
 pip install maxbridge
 
 # Или из исходников
-git clone <repository-url>
+git clone https://github.com/Sereuser/max-bridge.git
 cd max-bridge
 pip install -e .
 ```

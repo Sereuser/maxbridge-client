@@ -23,7 +23,7 @@
 
 ### Структура кода
 ```
-vkmax/
+maxbridge/
 ├── client.py          # Основной клиент
 ├── models.py          # Модели данных
 ├── exceptions.py      # Исключения
@@ -142,8 +142,8 @@ test: add tests for file upload
 
 ## 📞 Контакты
 
-- Issues: [GitHub Issues](https://github.com/username/max-bridge/issues)
-- Discussions: [GitHub Discussions](https://github.com/username/max-bridge/discussions)
+- Issues: [GitHub Issues](https://github.com/Sereuser/max-bridge/issues)
+- Discussions: [GitHub Discussions](https://github.com/Sereuser/max-bridge/discussions)
 
 ## 📄 Лицензия
 

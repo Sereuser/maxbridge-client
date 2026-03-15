@@ -8,13 +8,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="maxbridge",
-    version="0.2.0",
+    version="0.2.2",
     author="MaxBridge Team",
     author_email="",
     description="Асинхронная Python библиотека для MAX API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/username/max-bridge",
+    url="https://github.com/Sereuser/max-bridge",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -37,8 +37,8 @@ setup(
         "dev": ["black", "pytest", "pytest-asyncio"],
     },
     project_urls={
-        "Bug Reports": "https://github.com/username/max-bridge/issues",
-        "Source": "https://github.com/username/max-bridge",
-        "Documentation": "https://github.com/username/max-bridge/docs/",
+        "Bug Reports": "https://github.com/Sereuser/max-bridge/issues",
+        "Source": "https://github.com/Sereuser/max-bridge",
+        "Documentation": "https://github.com/Sereuser/max-bridge/tree/main/docs",
     },
 )

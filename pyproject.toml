@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "maxbridge-client"
-version = "0.2.2"
+version = "0.2.4"
 description = "Асинхронная Python библиотека для MAX API"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -44,14 +44,14 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Sereuser/max-bridge"
-Documentation = "https://github.com/Sereuser/max-bridge/tree/main/docs"
-Repository = "https://github.com/Sereuser/max-bridge"
-"Bug Reports" = "https://github.com/Sereuser/max-bridge/issues"
-"Source" = "https://github.com/Sereuser/max-bridge"
+Homepage = "https://github.com/Sereuser/maxbridge-client"
+Documentation = "https://github.com/Sereuser/maxbridge-client/tree/main/docs"
+Repository = "https://github.com/Sereuser/maxbridge-client"
+"Bug Reports" = "https://github.com/Sereuser/maxbridge-client/issues"
+"Source" = "https://github.com/Sereuser/maxbridge-client"
 
 [tool.setuptools]
-packages = ["maxbridge"]
+packages = ["maxbridge_client"]
 
 [tool.black]
 line-length = 88

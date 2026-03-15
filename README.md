@@ -14,7 +14,7 @@ MaxBridge предоставляет удобный интерфейс для р
 
 ```python
 import asyncio
-from maxbridge import MaxClient
+from maxbridge_client import MaxClient
 
 async def main():
     async with MaxClient() as client:
@@ -31,11 +31,11 @@ asyncio.run(main())
 ## 📦 Установка
 
 ```bash
-# Установка из PyPI (предполагается, что пакет опубликован)
-pip install maxbridge
+# Установка из PyPI
+pip install maxbridge-client
 
 # Или из исходников
-git clone https://github.com/Sereuser/max-bridge.git
+git clone https://github.com/Sereuser/maxbridge-client.git
 cd max-bridge
 pip install -e .
 ```
@@ -82,7 +82,7 @@ if "payload" in messages and "messages" in messages["payload"]:
 ## 📨 Отправка сообщений
 
 ```python
-from maxbridge.functions import messages
+from maxbridge_client.functions import messages
 
 # Текстовое сообщение
 await messages.send_message(client, chat_id=123456, text="Привет!")
@@ -97,7 +97,7 @@ await messages.reply_message(client, chat_id=123456, text="Ответ", reply_to
 ## 👥 Управление пользователями
 
 ```python
-from maxbridge.functions import users
+from maxbridge_client.functions import users
 
 # Информация о пользователях
 user_info = await users.resolve_users(client, user_ids=[12345, 67890])
@@ -109,7 +109,7 @@ await users.add_to_contacts(client, user_id=12345)
 ## 📁 Работа с файлами
 
 ```python
-from maxbridge.functions import messages, uploads
+from maxbridge_client.functions import messages, uploads
 
 # Отправка файла
 await messages.send_file(client, chat_id=123456, file_path="document.pdf", caption="Документ")
@@ -132,7 +132,7 @@ video_url = await uploads.download_video(
 ## 👥 Группы и каналы
 
 ```python
-from maxbridge.functions import groups, channels
+from maxbridge_client.functions import groups, channels
 
 # Создание группы
 await groups.create_group(client, "Название группы", participant_ids=[123, 456])
@@ -147,7 +147,7 @@ channel_info = await channels.resolve_channel_username(client, "username")
 ## 🛠️ Обработка ошибок
 
 ```python
-from maxbridge.exceptions import APIError, ConnectionError
+from maxbridge_client.exceptions import APIError, ConnectionError
 
 try:
     await client.login_by_token("токен")
@@ -160,7 +160,7 @@ except ConnectionError:
 ## 📊 Модели данных
 
 ```python
-from maxbridge.models import User, Chat, Message
+from maxbridge_client.models import User, Chat, Message
 
 # Примеры
 user = User(id=123, name="Имя", username="username")
@@ -200,7 +200,7 @@ users = client.get_cached_users()
 ## 🏗️ Структура проекта
 
 ```
-maxbridge/
+maxbridge_client/
 ├── __init__.py
 ├── client.py          # WebSocket клиент
 ├── models.py          # Модели данных

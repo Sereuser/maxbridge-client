@@ -142,8 +142,8 @@ test: add tests for file upload
 
 ## 📞 Контакты
 
-- Issues: [GitHub Issues](https://github.com/Sereuser/max-bridge/issues)
-- Discussions: [GitHub Discussions](https://github.com/Sereuser/max-bridge/discussions)
+- Issues: [GitHub Issues](https://github.com/Sereuser/maxbridge-client/issues)
+- Discussions: [GitHub Discussions](https://github.com/Sereuser/maxbridge-client/discussions)
 
 ## 📄 Лицензия
 

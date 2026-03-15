@@ -2,8 +2,8 @@ from pathlib import Path
 from random import randint
 from typing import Optional ,Union
 
-from maxbridge .client import MaxClient
-from maxbridge .functions .uploads import upload_photo ,upload_file
+from maxbridge_client.client import MaxClient
+from maxbridge_client.functions.uploads import upload_photo, upload_file
 
 
 

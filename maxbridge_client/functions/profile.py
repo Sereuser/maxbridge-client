@@ -1,4 +1,4 @@
-from maxbridge.client import MaxClient
+from maxbridge_client.client import MaxClient
 from typing import Optional
 
 

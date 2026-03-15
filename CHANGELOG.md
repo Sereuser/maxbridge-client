@@ -5,6 +5,11 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 и этот проект придерживается [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2026-03-15
+
+### Исправлено
+- Устранён цикл импортов (`maxbridge_client.__init__` ↔ `maxbridge_client.functions`) при импорте пакета.
+
 ## [0.2.0] - 2026-03-14
 
 ### Добавлено

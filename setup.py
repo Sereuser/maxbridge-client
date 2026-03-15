@@ -8,9 +8,9 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="maxbridge",
-    version="0.2.4",
-    author="MaxBridge Team",
-    author_email="",
+    version="0.2.5",
+    author="Vaka",
+    author_email="sereus.gernett@gmail.com",
     description="Асинхронная Python библиотека для MAX API",
     long_description=long_description,
     long_description_content_type="text/markdown",

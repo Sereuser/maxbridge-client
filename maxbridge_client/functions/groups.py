@@ -1,4 +1,4 @@
-from maxbridge_client.client import MaxClient
+from ..client import MaxClient
 from random import randint
 from typing import Optional
 

@@ -2,7 +2,7 @@ import asyncio
 from io import BufferedIOBase
 
 import aiohttp
-from maxbridge_client.client import MaxClient, USER_AGENT
+from ..client import MaxClient, USER_AGENT
 
 
 async def download_video (

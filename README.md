@@ -1,6 +1,14 @@
 # MaxBridge
 
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Asyncio](https://img.shields.io/badge/Asyncio-Supported-green.svg)](https://docs.python.org/3/library/asyncio.html)
+
 Асинхронная Python библиотека для взаимодействия с API мессенджера MAX через WebSocket соединение.
+
+## Описание
+
+MaxBridge предоставляет удобный интерфейс для работы с мессенджером MAX, позволяя отправлять и получать сообщения, управлять чатами, пользователями и файлами в асинхронном режиме.
 
 ## 🚀 Быстрый старт
 
@@ -12,7 +20,7 @@ async def main():
     async with MaxClient() as client:
         # Авторизация по токену
         await client.login_by_token("ваш_токен")
-        
+
         # Получение списка чатов
         chats = client.get_cached_chats()
         print(f"Найдено чатов: {len(chats)}")
@@ -23,43 +31,34 @@ asyncio.run(main())
 ## 📦 Установка
 
 ```bash
-# Клонируйте репозиторий
+# Установка из PyPI (предполагается, что пакет опубликован)
+pip install maxbridge
+
+# Или из исходников
 git clone <repository-url>
 cd max-bridge
-
-# Создайте виртуальное окружение
-python -m venv venv
-./venv/bin/pip install -r requirements.txt
-
-# Или установите как пакет
 pip install -e .
 ```
 
 ## 🔐 Авторизация
 
-### По токену (единственный доступный метод)
+### По токену
 
-**Важно:** Телефонная авторизация (по SMS) больше не поддерживается в MAX. Для авторизации необходимо получить токен доступа.
+**Важно:** Для авторизации необходимо получить токен доступа из веб-версии MAX.
 
 #### Как получить токен:
 
-1. **Через веб-версию MAX:**
-   - Откройте https://web.maximonline.ru в браузере
-   - Авторизуйтесь в вашем аккаунте MAX
-   - Откройте инструменты разработчика (F12)
-   - Перейдите во вкладку "Application" → "Local Storage" → "https://web.maximonline.ru"
-   - Найдите ключ `token` и скопируйте его значение
-
-2. **Через мобильное приложение:**
-   - Авторизуйтесь в приложении MAX
-   - Используйте инструменты для извлечения токена из хранилища приложения
+1. Откройте https://web.max.ru в браузере
+2. Авторизуйтесь в вашем аккаунте
+3. Откройте DevTools (F12) → Application → Local Storage → https://web.max.ru
+4. Найдите ключ `token` и скопируйте его значение
 
 ```python
 async with MaxClient() as client:
     await client.login_by_token("ваш_длинный_токен")
 ```
 
-**Примечание:** Токен является конфиденциальной информацией. Не храните его в открытом виде и не передавайте третьим лицам.
+**Примечание:** Токен является конфиденциальной информацией. Храните его securely.
 
 ## 💬 Работа с чатами
 
@@ -88,44 +87,34 @@ from maxbridge.functions import messages
 # Текстовое сообщение
 await messages.send_message(client, chat_id=123456, text="Привет!")
 
-# Со вложениями
+# С фото
 await messages.send_photo(client, chat_id=123456, image_path="photo.jpg", caption="Фото")
 
-# Реплай на сообщение
+# Реплай
 await messages.reply_message(client, chat_id=123456, text="Ответ", reply_to_message_id="msg_id")
 ```
 
 ## 👥 Управление пользователями
 
-### Получение информации о пользователях
-
 ```python
 from maxbridge.functions import users
 
+# Информация о пользователях
 user_info = await users.resolve_users(client, user_ids=[12345, 67890])
-```
 
-### Добавление в контакты
-
-```python
+# Добавить в контакты
 await users.add_to_contacts(client, user_id=12345)
 ```
 
 ## 📁 Работа с файлами
 
-### Отправка файла
-
 ```python
-from maxbridge.functions import messages
+from maxbridge.functions import messages, uploads
 
+# Отправка файла
 await messages.send_file(client, chat_id=123456, file_path="document.pdf", caption="Документ")
-```
 
-### Скачивание файла
-
-```python
-from maxbridge.functions import uploads
-
+# Скачивание файла
 download_url = await uploads.download_file(
     client, chat_id=123456, message_id="msg_id", file_id=789
 )
@@ -133,15 +122,14 @@ download_url = await uploads.download_file(
 
 ## 📺 Работа с медиа
 
-### Скачивание видео
-
 ```python
+# Скачивание видео
 video_url = await uploads.download_video(
     client, chat_id=123456, message_id="msg_id", video_id=101112
 )
 ```
 
-## 👥 Управление группами и каналами
+## 👥 Группы и каналы
 
 ```python
 from maxbridge.functions import groups, channels
@@ -152,7 +140,7 @@ await groups.create_group(client, "Название группы", participant_i
 # Присоединение к каналу
 await channels.join_channel(client, "username_канала")
 
-# Получение информации о канале
+# Информация о канале
 channel_info = await channels.resolve_channel_username(client, "username")
 ```
 
@@ -174,7 +162,7 @@ except ConnectionError:
 ```python
 from maxbridge.models import User, Chat, Message
 
-# Пример структуры данных
+# Примеры
 user = User(id=123, name="Имя", username="username")
 chat = Chat(id=456, title="Название", type="DIALOG")
 message = Message(id="msg_id", chat_id=456, user_id=123, text="Текст")
@@ -195,62 +183,48 @@ client.set_packet_callback(event_handler)
 ### Кастомные настройки
 
 ```python
-# Получение профиля
+# Профиль
 profile = client.profile
 
-# Получение списка пользователей
+# Кэшированные пользователи
 users = client.get_cached_users()
 ```
 
-## � Документация
+## 📚 Документация
 
-- [Полная документация API](docs/API.md) - подробное описание протокола и всех функций
-- [Примеры использования](examples/) - готовые примеры кода- [Contributing Guide](CONTRIBUTING.md) - как внести вклад в проект
-- [Changelog](CHANGELOG.md) - история изменений
+- [API Reference](docs/API.md)
+- [Примеры](examples/)
+- [Contributing](CONTRIBUTING.md)
+- [Changelog](CHANGELOG.md)
 
 ## 🏗️ Структура проекта
 
 ```
-vkmax/
-├── client.py          # Основной WebSocket клиент
-├── models.py          # Модели данных (User, Chat, Message)
-├── exceptions.py      # Кастомные исключения
-├── functions/         # API функции по категориям
-│   ├── messages.py    # Отправка и управление сообщениями
-│   ├── users.py       # Работа с пользователями
-│   ├── groups.py      # Групповые чаты
-│   ├── channels.py    # Каналы
-│   └── uploads.py     # Загрузка файлов
-└── __init__.py
+maxbridge/
+├── __init__.py
+├── client.py          # WebSocket клиент
+├── models.py          # Модели данных
+├── exceptions.py      # Исключения
+├── packet.py          # Обработка пакетов
+└── functions/         # API функции
+    ├── __init__.py
+    ├── messages.py    # Сообщения
+    ├── users.py       # Пользователи
+    ├── groups.py      # Группы
+    ├── channels.py    # Каналы
+    ├── profile.py     # Профиль
+    └── uploads.py     # Загрузки
 
-docs/                  # Подробная документация
-examples/              # Примеры использования
-tests/                 # Тесты (планируется)
+docs/                  # Документация
+examples/              # Примеры
 ```
 
-## 🔧 Установка для разработки
-
-```bash
-# Клонирование
-git clone <repository-url>
-cd max-bridge
-
-# Создание виртуального окружения
-python -m venv venv
-./venv/bin/pip install -e .[dev]
-
-# Форматирование кода
-./venv/bin/black vkmax/ examples/
-
-# Запуск тестов
-./venv/bin/python test_cli.py
-```
 ## ⚠️ Важные замечания
 
-- Все методы асинхронные, используйте `await`
-- Рекомендуется использовать контекстный менеджер `async with MaxClient() as client:`
-- Токены авторизации имеют ограниченный срок действия
-- Соблюдайте лимиты API для избежания блокировок
+- Все методы асинхронные — используйте `await`
+- Рекомендуется `async with MaxClient() as client:`
+- Токены имеют срок действия
+- Соблюдайте лимиты API
 
 ## 🐛 Отладка
 

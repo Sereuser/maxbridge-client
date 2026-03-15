@@ -12,11 +12,13 @@ from websockets .asyncio .client import ClientConnection
 from functools import wraps
 
 from .exceptions import APIError ,ConnectionError
+from . import models
 
 WS_HOST ="wss://ws-api.oneme.ru/websocket"
 RPC_VERSION =11
-APP_VERSION ="26.2.2"
-USER_AGENT ="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+# Match current MAX web client fingerprint from captured traffic
+APP_VERSION ="26.3.6"
+USER_AGENT ="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
 
 _logger =logging .getLogger (__name__ )
 
@@ -42,6 +44,7 @@ class MaxClient :
         self ._recv_task :Optional [asyncio .Task ]=None
         self ._incoming_event_callback =None
         self ._reconnect_callback =None
+        self ._closed :bool =False
         self ._pending ={}
         self ._video_pending ={}
         self ._file_pending ={}
@@ -56,6 +59,7 @@ class MaxClient :
         if self ._connection :
             raise Exception ("Already connected")
 
+        self ._closed =False
         _logger .info (f'Connecting to {WS_HOST }...')
         self ._connection =await websockets .connect (
         WS_HOST ,
@@ -69,8 +73,10 @@ class MaxClient :
 
     @ensure_connected
     async def disconnect (self ):
+        self ._closed =True
         await self ._stop_keepalive_task ()
-        self ._recv_task .cancel ()
+        if self ._recv_task :
+            self ._recv_task .cancel ()
         await self ._connection .close ()
         self ._connection =None
         if self ._http_pool :
@@ -90,7 +96,7 @@ class MaxClient :
         }
         _logger .info (f'-> REQUEST: {request }')
 
-        future =asyncio .get_event_loop ().create_future ()
+        future =asyncio .get_running_loop ().create_future ()
         self ._pending [seq ]=future
 
         try :
@@ -107,13 +113,26 @@ class MaxClient :
                     await self .invoke_method (opcode ,payload ,retries -1 )
             return
 
-        response =await future
+        try :
+            response =await future
+        except asyncio .CancelledError :
+            self ._pending .pop (seq ,None )
+            raise
         _logger .info (f'<- RESPONSE: {response }')
 
 
-        if "error"in response .get ("payload",{}):
-            error =response ["payload"]["error"]
-            raise APIError (error .get ("code",-1 ),error .get ("message","Unknown error"))
+        if "error" in response .get ("payload", {}):
+            payload = response.get("payload", {})
+            error = payload.get("error")
+            # Some responses return a string error instead of an object
+            if isinstance(error, dict):
+                code = error.get("code", -1)
+                message = error.get("message", payload.get("message", "Unknown error"))
+            else:
+                code = -1
+                message = payload.get("message") or str(error)
+
+            raise APIError(code, message)
 
         return response
 
@@ -131,9 +150,43 @@ class MaxClient :
         if not asyncio .iscoroutinefunction (function ):
             raise TypeError ('callback must be async')
         self ._reconnect_callback =function
+    async def debug_invoke (self ,opcode :int ,payload :dict | None =None ,timeout :float =5.0 ):
+        """Invoke an opcode for debugging.
 
+        This helper wraps `invoke_method` and catches exceptions, returning a
+        structured report instead of raising.
+        """
+        payload = payload or {}
+        try :
+            response =await asyncio .wait_for (self .invoke_method (opcode ,payload ),timeout )
+            return {
+            "opcode":opcode ,
+            "payload":payload ,
+            "response":response ,
+            "error":None
+            }
+        except Exception as e :
+            return {
+            "opcode":opcode ,
+            "payload":payload ,
+            "response":None ,
+            "error":repr (e )
+            }
+
+    async def discover_opcodes (self ,start :int =1 ,end :int =120 ,payloads :dict | None =None ,delay :float =0.1 ):
+        """Probe a range of opcodes to see what the server returns.
+
+        **Warning**: This may trigger rate limiting or disconnects.
+        """
+        payloads = payloads or {}
+        results = {}
+        for opcode in range (start ,end +1 ):
+            payload = payloads .get (opcode ,{})
+            results [opcode ]=await self .debug_invoke (opcode ,payload )
+            await asyncio .sleep (delay )
+        return results
     async def _recv_loop (self ):
-        while True :
+        while not self ._closed :
             try :
                 packet =await self ._connection .recv ()
                 packet =json .loads (packet )
@@ -152,8 +205,7 @@ class MaxClient :
                 return
 
             except websockets .exceptions .ConnectionClosedOK :
-
-                _logger .warning ('connection closed')
+                _logger .info ('connection closed by server')
                 return
 
             except json .JSONDecodeError :
@@ -189,7 +241,7 @@ class MaxClient :
             async with asyncio .timeout (15 ):
                 await self .invoke_method (
                 opcode =1 ,
-                payload ={"interactive":False }
+                payload ={"interactive":True }
                 )
         except asyncio .TimeoutError :
             _logger .warning ('keepalive ping timed out')
@@ -240,8 +292,8 @@ class MaxClient :
         "deviceName":"Chrome",
         "headerUserAgent":USER_AGENT ,
         "appVersion":APP_VERSION ,
-        "screen":"1080x1920 1.0x",
-        "timezone":"Europe/Moscow"
+        "screen":"720x1280 1.0x",
+        "timezone":"Asia/Yekaterinburg"
         },
         "deviceId":self ._device_id ,
         }
@@ -395,17 +447,54 @@ class MaxClient :
     def get_cached_users (self )->dict [int ,dict ]:
         return self ._cached_users
 
+    def get_chats_structured (self )->dict [int ,models .Chat ]:
+        """Return cached chats as `Chat` models."""
+        return {cid :models .Chat .from_raw (data )for cid ,data in self ._cached_chats .items ()}
+
+    def get_users_structured (self )->dict [int ,models .User ]:
+        """Return cached users as `User` models."""
+        return {uid :models .User .from_raw (data )for uid ,data in self ._cached_users .items ()}
+
     @ensure_connected
-    async def get_chat_messages (self ,chat_id :int ,count :int =50 ,offset :int =0 ):
-        """Get messages from chat"""
+    async def get_chat_messages (self ,chat_id :int ,from_ts :Optional [int ]=None ,backward :int =30 ,forward :int =0 ,get_messages :bool =True ):
+        """Get messages from chat using the same opcode/shape as web client.
+
+        :param chat_id: Chat identifier.
+        :param from_ts: Anchor timestamp (ms). If not provided, tries to use lastEventTime/lastMessage.time from cache.
+        :param backward: How many messages to request before ``from_ts``.
+        :param forward: How many messages to request after ``from_ts``.
+        :param get_messages: Whether to include messages in the response (web uses ``true``).
+        """
+        if from_ts is None :
+            cached =self ._cached_chats .get (chat_id )
+            if cached :
+                from_ts =cached .get ("lastEventTime")or cached .get ("lastMessage" ,{}).get ("time")
+        if from_ts is None :
+            # Fallback to zero – server will interpret according to its defaults
+            from_ts =0
+
         return await self .invoke_method (
-        opcode =48 ,
+        opcode =49 ,
         payload ={
         "chatId":chat_id ,
-        "count":count ,
-        "offset":offset
+        "from":from_ts ,
+        "forward":forward ,
+        "backward":backward ,
+        "getMessages":get_messages
         }
         )
+
+    @ensure_connected
+    async def get_chat_messages_structured (self ,chat_id :int ,from_ts :Optional [int ]=None ,backward :int =30 ,forward :int =0 )->list [models .Message ]:
+        """Wrapper over `get_chat_messages` that returns a list of `Message` models."""
+        raw =await self .get_chat_messages (chat_id ,from_ts =from_ts ,backward =backward ,forward =forward ,get_messages =True )
+        payload =raw .get ("payload", {})
+        msgs =payload .get ("messages")or []
+        if isinstance (msgs ,dict ):
+            iterable =msgs .values ()
+        else :
+            iterable =msgs
+        return [models .Message .from_raw (m ,chat_id =chat_id )for m in iterable ]
 
     async def __aenter__ (self ):
         await self .connect ()

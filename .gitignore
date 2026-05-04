@@ -260,13 +260,23 @@ secrets.json
 .env
 .env.local
 .env.*.local
+.pypirc
 auth.json
 credentials.json
 token.txt
+*.secret
 *.key
 *.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+*.jks
 
 # MAX specific
 max_token.txt
 max_auth.json
 session_data.json
+debug.log
+debug-*.log

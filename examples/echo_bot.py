@@ -1,45 +1,27 @@
-"""
-Пример простого эхо-бота для VK Max
-"""
 import asyncio
+
 from maxbridge import MaxClient
-from maxbridge .functions import messages
-
-async def message_handler (client ,packet ):
-    """Обработчик входящих сообщений"""
-    if packet .get ("opcode")==64 :
-        payload =packet .get ("payload",{})
-        if "message"in payload :
-            msg =payload ["message"]
-            chat_id =payload .get ("chatId")
-            text =msg .get ("text","")
-            sender =msg .get ("sender")
+from maxbridge.parser import PacketEnvelope
 
 
-            if sender !=client .profile .get ("contact",{}).get ("id"):
-
-                response_text =f"Вы сказали: {text }"
-                await messages .send_message (client ,chat_id ,response_text )
-                print (f"Ответил на сообщение от {sender }: {text }")
-
-async def main ():
-    async with MaxClient ()as client :
-
-        client .set_packet_callback (message_handler )
-
-
-        token ="your_token_here"
-        await client .login_by_token (token )
-
-        print ("Бот запущен! Ожидание сообщений...")
-        print ("Нажмите Ctrl+C для выхода")
+async def handle_packet(client: MaxClient, packet: PacketEnvelope) -> None:
+    if packet.message_event is None:
+        return
+    profile = client.profile or {}
+    current_user_id = profile.get("contact", {}).get("id")
+    message = packet.message_event.message
+    if message.user_id == current_user_id:
+        return
+    await client.send_message(message.chat_id, f"Echo: {message.text}")
 
 
-        try :
-            while True :
-                await asyncio .sleep (1 )
-        except KeyboardInterrupt :
-            print ("Бот остановлен")
+async def main() -> None:
+    async with MaxClient() as client:
+        client.set_parsed_packet_callback(handle_packet)
+        await client.login_by_token("your_token_here")
+        while True:
+            await asyncio.sleep(1)
 
-if __name__ =="__main__":
-    asyncio .run (main ())
+
+if __name__ == "__main__":
+    asyncio.run(main())

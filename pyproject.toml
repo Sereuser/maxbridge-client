@@ -4,62 +4,48 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "maxbridge-client"
-version = "0.2.5"
-description = "Асинхронная Python библиотека для MAX API"
+version = "0.4.0"
+description = "Асинхронная Python-библиотека для MAX API"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "MIT"
 requires-python = ">=3.9"
-authors = [
-    {name = "VK Max Client Team"},
-]
-maintainers = [
-    {name = "VK Max Client Team"},
-]
-keywords = ["vk", "max", "messenger", "api", "websocket", "async"]
+authors = [{ name = "VK Max Client Team" }]
+maintainers = [{ name = "VK Max Client Team" }]
+keywords = ["max", "messenger", "api", "websocket", "async", "matrix", "bridge"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Communications :: Chat",
-    "Topic :: Internet :: WWW/HTTP",
-    "Topic :: Software Development :: Libraries :: Python Modules",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Communications :: Chat",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = [
-    "aiohttp>=3.8.0",
-    "websockets>=12.0",
-]
+dependencies = ["aiohttp>=3.8.0", "websockets>=12.0"]
 
 [project.optional-dependencies]
-dev = [
-    "black",
-    "pytest",
-    "pytest-asyncio",
-    "mypy",
-]
+dev = ["black", "pytest", "pytest-asyncio", "mypy"]
 
 [project.urls]
 Homepage = "https://github.com/Sereuser/maxbridge-client"
 Documentation = "https://github.com/Sereuser/maxbridge-client/tree/main/docs"
 Repository = "https://github.com/Sereuser/maxbridge-client"
 "Bug Reports" = "https://github.com/Sereuser/maxbridge-client/issues"
-"Source" = "https://github.com/Sereuser/maxbridge-client"
+Source = "https://github.com/Sereuser/maxbridge-client"
 
-[tool.setuptools]
-packages = ["maxbridge_client"]
+[tool.setuptools.packages.find]
+include = ["maxbridge*", "maxbridge_client*"]
 
 [tool.black]
 line-length = 88
-target-version = ['py39']
+target-version = ["py39"]
 include = '\.pyi?$'
 extend-exclude = '''
 /(
-  # directories
   \.eggs
   | \.git
   | \.hg
@@ -87,8 +73,5 @@ warn_unreachable = true
 strict_equality = true
 
 [[tool.mypy.overrides]]
-module = [
-    "aiohttp.*",
-    "websockets.*",
-]
+module = ["aiohttp.*", "websockets.*"]
 ignore_missing_imports = true

@@ -1,238 +1,247 @@
-# MaxBridge-client
+# MaxBridge Client
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Asyncio](https://img.shields.io/badge/Asyncio-Supported-green.svg)](https://docs.python.org/3/library/asyncio.html)
+Асинхронная Python-библиотека для работы с WebSocket API MAX.
 
-Асинхронная Python библиотека для взаимодействия с API мессенджера MAX через WebSocket соединение.
+## Возможности
 
-## Описание
+- Авторизация по токену и через SMS
+- Долгоживущая WebSocket-сессия с keepalive и автопереподключением
+- Типизированные модели чатов, пользователей, сообщений и пакетов
+- Нормализация событий для сценариев моста MAX <-> Matrix
+- Нормализация контента сообщений, включая non-text payloads и варианты выбора
+- Отправка сообщений, файлов, фото, чтение истории и работа с вложениями
+- Примитивы backfill и checkpoint для сохранения и восстановления состояния
 
-MaxBridge предоставляет удобный интерфейс для работы с мессенджером MAX, позволяя отправлять и получать сообщения, управлять чатами, пользователями и файлами в асинхронном режиме.
+## Установка
 
-## 🚀 Быстрый старт
+```bash
+pip install maxbridge-client
+```
+
+Для разработки:
+
+```bash
+git clone https://github.com/Sereuser/maxbridge-client.git
+cd max-bridge
+pip install -e .[dev]
+```
+
+## Импорт
+
+Поддерживаются оба варианта импорта:
+
+```python
+from maxbridge import MaxClient
+```
+
+```python
+from maxbridge_client import MaxClient
+```
+
+## Быстрый старт
 
 ```python
 import asyncio
-from maxbridge_client import MaxClient
 
-async def main():
+from maxbridge import MaxClient
+
+
+async def main() -> None:
     async with MaxClient() as client:
-        # Авторизация по токену
-        await client.login_by_token("ваш_токен")
+        await client.login_by_token("your_token_here")
+        chats = client.get_chats_structured()
+        print(f"Чатов загружено: {len(chats)}")
+        if chats:
+            first_chat_id = next(iter(chats))
+            await client.send_message(first_chat_id, "Привет из MaxBridge!")
 
-        # Получение списка чатов
-        chats = client.get_cached_chats()
-        print(f"Найдено чатов: {len(chats)}")
 
 asyncio.run(main())
 ```
 
-## 📦 Установка
-
-```bash
-# Установка из PyPI
-pip install maxbridge-client
-
-# Или из исходников
-git clone https://github.com/Sereuser/maxbridge-client.git
-cd max-bridge
-pip install -e .
-```
-
-## 🔐 Авторизация
+## Авторизация
 
 ### По токену
 
-**Важно:** Для авторизации необходимо получить токен доступа из веб-версии MAX.
+```python
+async with MaxClient() as client:
+    await client.login_by_token("your_token_here")
+```
 
-#### Как получить токен:
-
-1. Откройте https://web.max.ru в браузере
-2. Авторизуйтесь в вашем аккаунте
-3. Откройте DevTools (F12) → Application → Local Storage → https://web.max.ru
-4. Найдите ключ `token` и скопируйте его значение
+### Через SMS
 
 ```python
 async with MaxClient() as client:
-    await client.login_by_token("ваш_длинный_токен")
+    sms_token = await client.send_code("+79991234567")
+    await client.sign_in(sms_token, 123456)
 ```
 
-**Примечание:** Токен является конфиденциальной информацией. Храните его securely.
+## Долгоживущая сессия
 
-## 💬 Работа с чатами
-
-### Получение списка чатов
+Для фоновых процессов и мостов удобнее использовать постоянное подключение:
 
 ```python
-chats = client.get_cached_chats()
-for chat_id, chat_info in chats.items():
-    print(f"ID: {chat_id}, Тип: {chat_info['type']}, Название: {chat_info.get('title', 'Диалог')}")
+client = MaxClient()
+await client.start_with_token("your_token_here", reconnect_delay=5.0)
+await client.wait_until_logged_in()
 ```
 
-### Получение сообщений чата
+Или запустить клиент в режиме daemon:
 
 ```python
-messages = await client.get_chat_messages(chat_id=123456, count=50, offset=0)
-if "payload" in messages and "messages" in messages["payload"]:
-    for msg_id, msg in messages["payload"]["messages"].items():
-        print(f"{msg['sender']}: {msg['text']}")
+await client.run_forever("your_token_here", reconnect_delay=5.0)
 ```
 
-## 📨 Отправка сообщений
+Если тестируете из PowerShell, лучше запускать код из файла `*.py`, а не через
+подачу многострочного текста в stdin. Иначе кириллица может превратиться в `?`
+ещё до того, как дойдёт до Python.
+
+## События и парсинг пакетов
+
+Сырой пакет:
 
 ```python
-from maxbridge_client.functions import messages
+async def handle_raw_packet(client, packet):
+    print(packet["opcode"])
 
-# Текстовое сообщение
-await messages.send_message(client, chat_id=123456, text="Привет!")
 
-# С фото
-await messages.send_photo(client, chat_id=123456, image_path="photo.jpg", caption="Фото")
-
-# Реплай
-await messages.reply_message(client, chat_id=123456, text="Ответ", reply_to_message_id="msg_id")
+client.set_packet_callback(handle_raw_packet)
 ```
 
-## 👥 Управление пользователями
+Нормализованный пакет:
 
 ```python
-from maxbridge_client.functions import users
+from maxbridge.parser import PacketEnvelope
 
-# Информация о пользователях
-user_info = await users.resolve_users(client, user_ids=[12345, 67890])
 
-# Добавить в контакты
-await users.add_to_contacts(client, user_id=12345)
+async def handle_packet(client, packet: PacketEnvelope):
+    if packet.message_event is None:
+        return
+    message = packet.message_event.message
+    await client.send_message(message.chat_id, f"Эхо: {message.text}")
+
+
+client.set_parsed_packet_callback(handle_packet)
 ```
 
-## 📁 Работа с файлами
+## Bridge API
+
+Для сценариев моста используйте нормализованный слой:
 
 ```python
-from maxbridge_client.functions import messages, uploads
+async with MaxClient() as client:
+    await client.login_by_token("your_token_here")
+    stream = client.create_bridge_event_stream(include_self=False)
+    async for event in stream:
+        if event.message is None:
+            continue
+        print(event.message.chat_id, event.message.sender_id, event.message.text)
+```
 
-# Отправка файла
-await messages.send_file(client, chat_id=123456, file_path="document.pdf", caption="Документ")
+История с checkpoint:
 
-# Скачивание файла
-download_url = await uploads.download_file(
-    client, chat_id=123456, message_id="msg_id", file_id=789
+```python
+page = await client.get_bridge_backfill_page(chat_id=123456, backward=50)
+checkpoint = page.checkpoint
+```
+
+Стабильные идентификаторы события:
+
+```python
+message = page.messages[0]
+print(message.event_id)
+print(message.dedupe_key)
+```
+
+Состояние моста и дедупликация:
+
+```python
+ledger = client.create_bridge_event_ledger()
+registry = client.create_bridge_room_registry()
+mapping = client.bind_bridge_room(registry, max_chat_id=123456, matrix_room_id="!room:id")
+```
+
+Нормализация non-text сообщений:
+
+```python
+message = page.messages[0]
+print(message.content.kind)
+print(message.normalized_text)
+if message.content.has_options:
+    print(message.content.options)
+```
+
+## Основные операции
+
+### Отправка текста
+
+```python
+await client.send_message(chat_id=123456, text="Привет")
+```
+
+### Ответ на сообщение
+
+```python
+from maxbridge.functions import messages
+
+
+await messages.reply_message(
+    client,
+    chat_id=123456,
+    text="Ответ",
+    reply_to_message_id="message-id",
 )
 ```
 
-## 📺 Работа с медиа
+### Отправка файла
 
 ```python
-# Скачивание видео
-video_url = await uploads.download_video(
-    client, chat_id=123456, message_id="msg_id", video_id=101112
-)
+await client.send_file(chat_id=123456, file_path="document.pdf", caption="Документ")
 ```
 
-## 👥 Группы и каналы
+### Чтение истории
 
 ```python
-from maxbridge_client.functions import groups, channels
-
-# Создание группы
-await groups.create_group(client, "Название группы", participant_ids=[123, 456])
-
-# Присоединение к каналу
-await channels.join_channel(client, "username_канала")
-
-# Информация о канале
-channel_info = await channels.resolve_channel_username(client, "username")
+history = await client.get_chat_messages_bridge(chat_id=123456, backward=50)
+for message in history:
+    print(message.sender_id, message.text)
 ```
 
-## 🛠️ Обработка ошибок
+### Разрешение пользователей
 
 ```python
-from maxbridge_client.exceptions import APIError, ConnectionError
-
-try:
-    await client.login_by_token("токен")
-except APIError as e:
-    print(f"Ошибка API {e.error_code}: {e.message}")
-except ConnectionError:
-    print("Ошибка подключения")
+users = await client.resolve_users([123, 456])
 ```
 
-## 📊 Модели данных
+## Структура проекта
 
-```python
-from maxbridge_client.models import User, Chat, Message
-
-# Примеры
-user = User(id=123, name="Имя", username="username")
-chat = Chat(id=456, title="Название", type="DIALOG")
-message = Message(id="msg_id", chat_id=456, user_id=123, text="Текст")
+```text
+maxbridge/
+maxbridge_client/
+  client.py
+  bridge.py
+  sync.py
+  parser.py
+  models.py
+  exceptions.py
+  functions/
+docs/
+examples/
+tests/
 ```
 
-## 🔧 Продвинутые возможности
+## Документация
 
-### Обработка событий в реальном времени
-
-```python
-def event_handler(client, packet):
-    if packet.get("opcode") == 64:  # Новое сообщение
-        print("Новое сообщение!")
-
-client.set_packet_callback(event_handler)
-```
-
-### Кастомные настройки
-
-```python
-# Профиль
-profile = client.profile
-
-# Кэшированные пользователи
-users = client.get_cached_users()
-```
-
-## 📚 Документация
-
-- [API Reference](docs/API.md)
+- [API reference](docs/API.md)
 - [Примеры](examples/)
+- [Пример bridge-цикла](examples/matrix_bridge_loop.py)
+- [Пример bridge-state слоя](examples/bridge_state_demo.py)
+- [Проверка Unicode через файл](examples/unicode_smoke.py)
 - [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)
 
-## 🏗️ Структура проекта
+## Статус
 
-```
-maxbridge_client/
-├── __init__.py
-├── client.py          # WebSocket клиент
-├── models.py          # Модели данных
-├── exceptions.py      # Исключения
-├── packet.py          # Обработка пакетов
-└── functions/         # API функции
-    ├── __init__.py
-    ├── messages.py    # Сообщения
-    ├── users.py       # Пользователи
-    ├── groups.py      # Группы
-    ├── channels.py    # Каналы
-    ├── profile.py     # Профиль
-    └── uploads.py     # Загрузки
-
-docs/                  # Документация
-examples/              # Примеры
-```
-
-## ⚠️ Важные замечания
-
-- Все методы асинхронные — используйте `await`
-- Рекомендуется `async with MaxClient() as client:`
-- Токены имеют срок действия
-- Соблюдайте лимиты API
-
-## 🐛 Отладка
-
-```python
-import logging
-logging.basicConfig(level=logging.INFO)
-```
-
-## 📄 Лицензия
-
-MIT License
+Библиотека продолжает работать поверх reverse-engineered протокола MAX. При
+изменении веб-клиента MAX возможны несовместимости, поэтому API специально
+сделан с акцентом на проверяемые примитивы и устойчивые данные для моста.

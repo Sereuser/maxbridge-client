@@ -1,80 +1,64 @@
-from dataclasses import dataclass
-from typing import Optional ,List ,Dict ,Any
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
-class User :
-    id :int
-    name :str
-    username :Optional [str ]=None
-    avatar :Optional [str ]=None
+class User:
+    id: int
+    name: str
+    username: Optional[str] = None
+    avatar: Optional[str] = None
 
     @classmethod
-    def from_raw (cls ,raw :Dict [str ,Any ]):
-        contact_id =raw .get ("id")
-        names =raw .get ("names")or []
-        name =names [0 ].get ("name") if names else str (contact_id )
-        username =raw .get ("username")
-        base_url =raw .get ("baseUrl") or raw .get ("baseRawUrl")
-        avatar =None
-        if base_url :
-            avatar =base_url
-        return cls (
-        id =contact_id ,
-        name =name ,
-        username =username ,
-        avatar =avatar ,
+    def from_raw(cls, raw: Dict[str, Any]) -> "User":
+        contact_id = int(raw.get("id", 0))
+        names = raw.get("names") or []
+        name = names[0].get("name") if names else str(contact_id)
+        username = raw.get("username")
+        avatar = raw.get("baseUrl") or raw.get("baseRawUrl")
+        return cls(id=contact_id, name=name, username=username, avatar=avatar)
+
+
+@dataclass
+class Chat:
+    id: int
+    title: str
+    type: str
+    participants_count: Optional[int] = None
+    avatar: Optional[str] = None
+
+    @classmethod
+    def from_raw(cls, raw: Dict[str, Any]) -> "Chat":
+        chat_id = int(raw.get("id", 0))
+        chat_type = str(raw.get("type", "UNKNOWN"))
+        participants = raw.get("participants") or {}
+        title = raw.get("title") or ""
+        return cls(
+            id=chat_id,
+            title=title,
+            type=chat_type,
+            participants_count=len(participants) or None,
+            avatar=raw.get("avatar") or raw.get("baseUrl") or raw.get("baseRawUrl"),
         )
 
 
 @dataclass
-class Chat :
-    id :int
-    title :str
-    type :str
-    participants_count :Optional [int ]=None
-    avatar :Optional [str ]=None
+class Message:
+    id: str
+    chat_id: int
+    user_id: int
+    text: str
+    timestamp: int
+    attaches: List[Dict[str, Any]] = field(default_factory=list)
 
     @classmethod
-    def from_raw (cls ,raw :Dict [str ,Any ]):
-        chat_id =raw .get ("id")
-        title =raw .get ("title")
-        chat_type =raw .get ("type","UNKNOWN")
-        participants =raw .get ("participants")or {}
-        participants_count =len (participants )
-        avatar =raw .get ("avatar") or raw .get ("baseUrl") or raw .get ("baseRawUrl")
-        if not title and chat_type =='DIALOG':
-            # диалоги обычно без своего title, его удобно подставлять снаружи по собеседнику
-            title =f"Dialog {chat_id }"
-        return cls (
-        id =chat_id ,
-        title =title or "" ,
-        type =chat_type ,
-        participants_count =participants_count or None ,
-        avatar =avatar ,
-        )
-
-
-@dataclass
-class Message :
-    id :str
-    chat_id :int
-    user_id :int
-    text :str
-    timestamp :int
-    attaches :List [Dict [str ,Any ]]=None
-
-    def __post_init__ (self ):
-        if self .attaches is None :
-            self .attaches =[]
-
-    @classmethod
-    def from_raw (cls ,raw :Dict [str ,Any ] ,chat_id :Optional [int ]=None ):
-        return cls (
-        id =raw .get ("id" ),
-        chat_id =chat_id if chat_id is not None else int (raw .get ("chatId" ,0 )),
-        user_id =raw .get ("sender" ),
-        text =raw .get ("text" ,""),
-        timestamp =raw .get ("time" ,0 ),
-        attaches =raw .get ("attaches" )or [],
+    def from_raw(cls, raw: Dict[str, Any], chat_id: Optional[int] = None) -> "Message":
+        resolved_chat_id = chat_id if chat_id is not None else int(raw.get("chatId", 0))
+        return cls(
+            id=str(raw.get("id", "")),
+            chat_id=resolved_chat_id,
+            user_id=int(raw.get("sender", 0)),
+            text=str(raw.get("text", "")),
+            timestamp=int(raw.get("time", 0)),
+            attaches=list(raw.get("attaches") or []),
         )
